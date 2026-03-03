@@ -1,0 +1,41 @@
+name: Build Extension ZIP
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get extension version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build extension ZIP
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          TEMP_DIR="KLPF"
+          rm -rf "$TEMP_DIR"
+          mkdir -p "$TEMP_DIR"
+          cp -r manifest.json background.js scripts.config.js "$TEMP_DIR"/
+          cp -r features "$TEMP_DIR"/
+          cp -r gas "$TEMP_DIR"/
+          cp -r icon "$TEMP_DIR"/
+          cp -r setting "$TEMP_DIR"/
+          zip -r "KLPF-v${VERSION}.zip" "$TEMP_DIR"
+          rm -rf "$TEMP_DIR"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KLPF-v${{ steps.version.outputs.version }}
+          path: KLPF-v${{ steps.version.outputs.version }}.zip

@@ -142,6 +142,14 @@ export const CONTENT_SCRIPTS_CONFIG = [
         enabledByDefault: true,
         optionsPanelId: null,
     },
+    {
+        id: 'TodayHighlight',
+        storageKey: 'todayHighlight',
+        js: [`${PATHS.FEATURES}todayhighlight.js`],
+        matches: [URLS.KOGAKUIN_LMS_hH_KYOZAI, URLS.KOGAKUIN_LMS_cC, URLS.KOGAKUIN_LMS_sS],
+        runAt: 'document_end',
+        enabledByDefault: true,
+    },
 ];
 
 /**

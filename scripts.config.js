@@ -29,6 +29,7 @@ const URLS = {
   KOGAKUIN_LMS_hH_KYOZAI: 'https://study.ns.kogakuin.ac.jp/lms/homeHoml/doLinkKougi*',
   KOGAKUIN_LMS_cC: 'https://study.ns.kogakuin.ac.jp/lms/corsColl/*',
   KOGAKUIN_LMS_sS: 'https://study.ns.kogakuin.ac.jp/lms/srcsSrcl/*',
+  KOGAKUIN_LMS_KYOZAI_TITLE: 'https://study.ns.kogakuin.ac.jp/lms/klmsKlil/doKyozaiTitleLink*',
   KOGAKUIN_AUTH: 'https://auth.kogakuin.ac.jp/*',
   SECIOSS: 'https://slink.secioss.com/*',
   GOOGLE_MEET: 'https://meet.google.com/*',
@@ -131,6 +132,15 @@ export const CONTENT_SCRIPTS_CONFIG = [
         matches: [URLS.KOGAKUIN_LMS_hH_KYOZAI,URLS.KOGAKUIN_LMS_cC,URLS.KOGAKUIN_LMS_sS],
         runAt: 'document_end',
         enabledByDefault: true,
+    },
+    {
+        id: 'DropSubmit',
+        storageKey: 'dropSubmit',
+        js: [`${PATHS.FEATURES}dropsubmit.js`],
+        matches: [URLS.KOGAKUIN_LMS_KYOZAI_TITLE, URLS.KOGAKUIN_LMS_cC, URLS.KOGAKUIN_LMS_sS],
+        runAt: 'document_end',
+        enabledByDefault: true,
+        optionsPanelId: null,
     },
 ];
 

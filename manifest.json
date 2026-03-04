@@ -7,7 +7,8 @@
     "tabs",
     "storage", 
     "scripting",
-    "contextMenus"
+    "contextMenus",
+    "declarativeNetRequestWithHostAccess"
   ],
   "background": {
     "service_worker": "background.js",
@@ -19,7 +20,8 @@
     "https://auth.kogakuin.ac.jp/*", 
     "https://meet.google.com/*",
     "https://script.google.com/*",
-    "https://slink.secioss.com/*"
+    "https://slink.secioss.com/*",
+    "https://www.cc.kogakuin.ac.jp/*"
   ],
   "options_page": "setting/options.html",
   "icons": {

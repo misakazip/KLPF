@@ -1,7 +1,7 @@
 // Copyright (c) 2024-2025 SAYU
 // This software is released under the MIT License, see LICENSE.
 
-import { CONTENT_SCRIPTS_CONFIG, GAS_SETUP_CONFIG, CONTEXT_MENU_ID } from './scripts.config.js';
+import { CONTENT_SCRIPTS_CONFIG, GAS_SETUP_CONFIG, CONTEXT_MENU_ID, BASIC_AUTH_CONFIG } from './scripts.config.js';
 
 /**
  * コンテンツスクリプトを登録する。
@@ -67,6 +67,9 @@ async function initializeScripts() {
             }
         }
     }
+
+    // Basic認証ルールの初期化
+    await updateBasicAuthRule();
 }
 
 // --- イベントリスナーの登録 ---
@@ -108,6 +111,12 @@ chrome.runtime.onInstalled.addListener((details) => {
  * ストレージの変更を監視する。
  */
 chrome.storage.onChanged.addListener(async (changes, area) => {
+    // Basic認証関連の変更を検知してルールを更新
+    if ((area === 'sync' && 'basicAuth' in changes) ||
+        (area === 'local' && ('username' in changes || 'password' in changes))) {
+        await updateBasicAuthRule();
+    }
+
     if (area !== 'sync') return;
 
     for (const [key, { newValue }] of Object.entries(changes)) {
@@ -195,3 +204,49 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     return false;
 });
+
+/**
+ * Basic認証の自動入力を処理する。
+ * www.cc.kogakuin.ac.jp/ へのリクエストに Authorization ヘッダーを
+ * 付与することで、Basic認証ダイアログをスキップする。
+ */
+async function updateBasicAuthRule() {
+    try {
+        // 既存ルールを常に削除
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [BASIC_AUTH_CONFIG.RULE_ID]
+        });
+
+        const { basicAuth } = await chrome.storage.sync.get('basicAuth');
+        const { username, password } = await chrome.storage.local.get(['username', 'password']);
+        if (!basicAuth || !username || !password) {
+            console.log('[KLPF] Basic認証: 無効、またはユーザー情報が未設定のためルールを削除しました。');
+            return;
+        }
+
+        const credentials = btoa(`${username}:${password}`);
+
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            addRules: [{
+                id: BASIC_AUTH_CONFIG.RULE_ID,
+                priority: 1,
+                action: {
+                    type: 'modifyHeaders',
+                    requestHeaders: [{
+                        header: 'Authorization',
+                        operation: 'set',
+                        value: `Basic ${credentials}`
+                    }]
+                },
+                condition: {
+                    urlFilter: BASIC_AUTH_CONFIG.URL_FILTER,
+                    resourceTypes: ['main_frame', 'sub_frame', 'xmlhttprequest', 'other']
+                }
+            }]
+        });
+
+        console.log('[KLPF] Basic認証: ルールを更新しました。');
+    } catch (error) {
+        console.error('[KLPF] Basic認証ルールの更新に失敗しました:', error);
+    }
+}

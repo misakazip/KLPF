@@ -19,6 +19,7 @@ const SETTINGS_CONFIG = [
 
     // 機能の有効/無効 (syncストレージで同期)
     { id: 'auto-login',      key: 'autoLogin',     type: 'checked', storage: 'sync' },
+    { id: 'basic-auth',      key: 'basicAuth',     type: 'checked', storage: 'sync' },
     { id: 'show-time',       key: 'showTime',      type: 'checked', storage: 'sync' },
     { id: 'auto-attend',     key: 'autoAttend',    type: 'checked', storage: 'sync' },
     { id: 'auto-meet',       key: 'autoMeet',      type: 'checked', storage: 'sync' },

@@ -22,6 +22,7 @@ const MODULES = {
 
 // スクリプトを注入するURLパターン。
 const URLS = {
+  KOGAKUIN_CC: 'https://www.cc.kogakuin.ac.jp/*',
   KOGAKUIN_LMS: 'https://study.ns.kogakuin.ac.jp/*',
   KOGAKUIN_LMS_HOME: 'https://study.ns.kogakuin.ac.jp/lms/homeHoml/*',
   KOGAKUIN_LMS_GENERAL: 'https://study.ns.kogakuin.ac.jp/lms/*',
@@ -148,3 +149,11 @@ export const GAS_SETUP_CONFIG = {
  * コンテキストメニューのID
  */
 export const CONTEXT_MENU_ID = 'openOptions';
+
+/**
+ * Basic認証の設定
+ */
+export const BASIC_AUTH_CONFIG = {
+  RULE_ID: 1,
+  URL_FILTER: `||${new URL(URLS.KOGAKUIN_CC).hostname}`,
+};

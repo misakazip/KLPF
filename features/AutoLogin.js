@@ -22,21 +22,26 @@ async function getCredentials() {
 /**
  * LMSの初期ログインページを処理する。
  * 統合認証ページへ遷移するために「ログイン」ボタンをクリック
+ * @returns {boolean} 要素が見つかり処理できたか
  */
 function handleLmsStartPage() {
     const loginButton = safeQuerySelector(`button[name='loginButton']`);
     if (loginButton) {
         loginButton.click();
-    } else {
-        // もしボタンがなければ、リンクを探すなどの代替処理
-        const loginLink = safeQuerySelector('a[href*="login"]'); // "login"を含むリンク
-        loginLink?.click();
+        return true;
     }
+    const loginLink = safeQuerySelector('a[href*="login"]');
+    if (loginLink) {
+        loginLink.click();
+        return true;
+    }
+    return false;
 }
 
 /**
  * 統合認証のユーザー名入力ページ（prelogin.cgi）を処理する。
  * @param {string} username
+ * @returns {boolean} 要素が見つかり処理できたか
  */
 function handlePreLogin(username) {
     const usernameInput = safeQuerySelector("input[name='username']");
@@ -45,14 +50,15 @@ function handlePreLogin(username) {
     if (usernameInput && form) {
         usernameInput.value = username;
         form.submit();
-    } else {
-        console.warn("[KLPF] ユーザー名入力フォームが見つかりませんでした。");
+        return true;
     }
+    return false;
 }
 
 /**
  * 統合認証のパスワード入力ページ（login.cgi）を処理する。
  * @param {string} password
+ * @returns {boolean} 要素が見つかり処理できたか
  */
 function handleLogin(password) {
     const passwordInput = safeQuerySelector("input[name='password']");
@@ -61,9 +67,9 @@ function handleLogin(password) {
     if (passwordInput && form) {
         passwordInput.value = password;
         form.submit();
-    } else {
-        console.warn("[KLPF] パスワード入力フォームが見つかりませんでした。");
+        return true;
     }
+    return false;
 }
 
 // タイムアウトページからログインページへ復帰 (timeout.cgi)
@@ -80,23 +86,21 @@ function lms_errorpage() {
 /**
  * 統合認証のTOTP入力ページ（otplogin.cgi）を処理する。
  * @param {string} totpSecret - Base32エンコードされたTOTP秘密鍵
+ * @returns {Promise<boolean>} 要素が見つかり処理できたか
  */
 async function handleTotpPage(totpSecret) {
     
-    if (!totpSecret) return;
+    if (!totpSecret) return true;
 
     const otpInput = safeQuerySelector(
         "input#password_input.onetime_input, input[autocomplete='one-time-code']"
     );
-    if (!otpInput) {
-        console.warn("[KLPF] OTP入力フィールドが見つかりませんでした。");
-        return;
-    }
+    if (!otpInput) return false;
 
     const code = await generateTOTP(totpSecret);
     if (!code) {
         console.error("[KLPF] TOTPコードの生成に失敗しました。秘密鍵を確認してください。");
-        return;
+        return true;
     }
 
     otpInput.value = code;
@@ -110,40 +114,48 @@ async function handleTotpPage(totpSecret) {
     }
 
     const form = safeQuerySelector("form#login");
-    if (form) {
-        form.submit();
-    } else {
-        console.warn("[KLPF] OTPフォームが見つかりませんでした。");
-    }
+    if (form) form.submit();
+    return true;
 }
 
 /**
  * メイン処理
+ * @returns {Promise<boolean>} URLに応じた処理を実行できたか。falseの場合、DOMContentLoadedイベントを待って再試行する必要がある。
  */
 async function main() {
     const { username, password, totpSecret } = await getCredentials();
 
     if (!username || !password) {
         console.log("[KLPF] ユーザー名またはパスワードが未設定のため、自動ログインをスキップします。");
-        return;
+        return true; // 再試行不要
     }
 
     const { href } = window.location;
 
     if (href.startsWith(LMS_LOGIN_URL)) {
-        handleLmsStartPage();
+        return handleLmsStartPage();
     } else if (href.startsWith(SSO_PRELOGIN_URL)) {
-        handlePreLogin(username);
+        return handlePreLogin(username);
     } else if (href.startsWith(SSO_LOGIN_URL)) {
-        handleLogin(password);
+        return handleLogin(password);
     } else if (href.startsWith(SSO_OTP_URL)) {
-        await handleTotpPage(totpSecret);
+        return await handleTotpPage(totpSecret);
     } else if (href.startsWith(SSO_TIMEOUT_URL)) {
         sso_timeoutpage();
+        return true;
     } else if (href.startsWith(LMS_ERROR_URL)) {
         lms_errorpage();
+        return true;
+    }
+
+    return true; // 対象外URL
+}
+
+async function initialize() {
+    const handled = await main();
+    if (!handled && document.readyState === 'loading') {
+        document.addEventListener("DOMContentLoaded", () => main(), { once: true });
     }
 }
 
-// DOMの準備ができたらメイン処理を実行
-document.addEventListener("DOMContentLoaded", main);
+initialize();

@@ -1,4 +1,8 @@
 # KLPF (Ku-LMS Plugin Framework)
+
+> **⚠️ これは [KLPF](https://github.com/SAYUTIM/KLPF) の Fork 版です。**
+> デフォルトの `develop` ブランチには破壊的な変更や動作が不安定になる可能性のあるコードが含まれています。安定版を利用する場合は オリジナルのKLPFを使用するか、`main` ブランチを使用してください。
+
 **工学院大学での生活を少し怠惰にできる拡張機能。**
 > CoursePowerからKu-LMSへの移行に伴い、従来の[KALI](https://github.com/SAYUTIM/KALI)はその多くの機能が利用できなくなりました。<br>
 > KLPFは、新しいKu-LMSに対応するために開発された後継の拡張機能です。

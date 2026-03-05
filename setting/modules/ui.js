@@ -43,6 +43,13 @@ const elements = {
     // TOTP
     totpSecretInput: null,
     totpStatus: null,
+    // ヘッダーリンク
+    headerLinksCheckbox: null,
+    headerLinksOptions: null,
+    headerLinksList: null,
+    headerLinkAddBtn: null,
+    headerLinkNameInput: null,
+    headerLinkUrlInput: null,
 };
 
 /**
@@ -82,6 +89,14 @@ function cacheDOMElements() {
     // TOTP
     elements.totpSecretInput = document.getElementById('totp-secret');
     elements.totpStatus = document.getElementById('totp-status');
+
+    // ヘッダーリンク
+    elements.headerLinksCheckbox = document.getElementById('header-links');
+    elements.headerLinksOptions = document.getElementById('header-links-options');
+    elements.headerLinksList = document.getElementById('header-links-list');
+    elements.headerLinkAddBtn = document.getElementById('header-link-add-btn');
+    elements.headerLinkNameInput = document.getElementById('header-link-name');
+    elements.headerLinkUrlInput = document.getElementById('header-link-url');
 }
 
 // --- UI初期化処理 ---
@@ -222,6 +237,7 @@ function addEventListenersToUI() {
     elements.autoLoginCheckbox?.addEventListener("change", (e) => updateOptionsOrder('auto-login-options', e.target.checked));
     elements.autoAttendCheckbox?.addEventListener("change", (e) => updateOptionsOrder('auto-attend-options', e.target.checked));
     elements.homeworkSwitch?.addEventListener("change", (e) => updateOptionsOrder('homework-options', e.target.checked));
+    elements.headerLinksCheckbox?.addEventListener("change", (e) => updateOptionsOrder('header-links-options', e.target.checked));
 
     // --- Feature Description on Click ---
     const labels = document.querySelectorAll('.switch-label');
@@ -255,6 +271,9 @@ function addEventListenersToUI() {
             hideModal();
         }
     });
+
+    // --- Header Links Management ---
+    initHeaderLinksUI();
 }
 
 // --- Modal --- 
@@ -268,6 +287,98 @@ function showModal(message) {
 function hideModal() {
     if (!elements.validationModal) return;
     elements.validationModal.classList.remove('visible');
+}
+
+// --- ヘッダーリンク管理 ---
+
+const DEFAULT_HEADER_LINKS = [
+    { name: 'KU-PORT', url: 'https://ku-port.sc.kogakuin.ac.jp/' },
+];
+
+/**
+ * ヘッダーリンク管理UIを初期化する。
+ */
+async function initHeaderLinksUI() {
+    if (!elements.headerLinksList || !elements.headerLinkAddBtn) return;
+
+    // リンク一覧を描画
+    await renderHeaderLinks();
+
+    // 追加ボタン
+    elements.headerLinkAddBtn.addEventListener('click', async () => {
+        const name = elements.headerLinkNameInput?.value.trim();
+        const url = elements.headerLinkUrlInput?.value.trim();
+        if (!name || !url) {
+            showStatusMessage('表示名とURLを入力してください', '#ff6e6e');
+            return;
+        }
+        try {
+            new URL(url);
+        } catch {
+            showStatusMessage('有効なURLを入力してください', '#ff6e6e');
+            return;
+        }
+
+        const { headerLinks } = await chrome.storage.sync.get({ headerLinks: DEFAULT_HEADER_LINKS });
+        headerLinks.push({ name, url });
+        await chrome.storage.sync.set({ headerLinks });
+
+        elements.headerLinkNameInput.value = '';
+        elements.headerLinkUrlInput.value = '';
+        await renderHeaderLinks();
+        showStatusMessage('リンクを追加しました', 'lightgreen');
+    });
+}
+
+/**
+ * ヘッダーリンク一覧をレンダリングする。
+ */
+async function renderHeaderLinks() {
+    if (!elements.headerLinksList) return;
+    const { headerLinks } = await chrome.storage.sync.get({ headerLinks: DEFAULT_HEADER_LINKS });
+
+    elements.headerLinksList.innerHTML = '';
+
+    if (headerLinks.length === 0) {
+        const empty = document.createElement('p');
+        empty.textContent = 'リンクが登録されていません';
+        empty.style.cssText = 'color: #999; font-size: 0.9em; margin: 8px 0;';
+        elements.headerLinksList.appendChild(empty);
+        return;
+    }
+
+    for (let i = 0; i < headerLinks.length; i++) {
+        const link = headerLinks[i];
+        const row = document.createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 8px; background: rgba(255,255,255,0.05); border-radius: 6px;';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = link.name;
+        nameSpan.style.cssText = 'font-weight: 500; min-width: 80px;';
+
+        const urlSpan = document.createElement('span');
+        urlSpan.textContent = link.url;
+        urlSpan.style.cssText = 'color: #87CEFA; font-size: 0.85em; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.type = 'button';
+        removeBtn.style.cssText = 'background: rgba(255,100,100,0.2); border: none; color: #ff6e6e; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 0.9em; transition: background 0.2s;';
+        removeBtn.addEventListener('mouseenter', () => { removeBtn.style.background = 'rgba(255,100,100,0.4)'; });
+        removeBtn.addEventListener('mouseleave', () => { removeBtn.style.background = 'rgba(255,100,100,0.2)'; });
+        removeBtn.addEventListener('click', async () => {
+            const { headerLinks: current } = await chrome.storage.sync.get({ headerLinks: DEFAULT_HEADER_LINKS });
+            current.splice(i, 1);
+            await chrome.storage.sync.set({ headerLinks: current });
+            await renderHeaderLinks();
+            showStatusMessage('リンクを削除しました', 'lightgreen');
+        });
+
+        row.appendChild(nameSpan);
+        row.appendChild(urlSpan);
+        row.appendChild(removeBtn);
+        elements.headerLinksList.appendChild(row);
+    }
 }
 
 // --- UI更新ヘルパー ---
@@ -354,7 +465,8 @@ async function reorderAndShowPanels() {
     const allPanelIds = [
         elements.autoLoginOptions.id,
         elements.autoAttendOptions.id,
-        elements.homeworkOptions.id
+        elements.homeworkOptions.id,
+        elements.headerLinksOptions.id,
     ];
     const allPanelElements = allPanelIds.map(id => document.getElementById(id)).filter(Boolean);
 

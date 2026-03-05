@@ -120,6 +120,14 @@
                 </label>
             </div>
 
+            <div class="switch-container" title="Ku-LMSのヘッダーにカスタムリンクを表示します。設定からリンクを追加・削除できます。">
+                <span class="switch-label">ヘッダーリンク</span>
+                <label class="switch">
+                    <input type="checkbox" id="header-links">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
             <!--
                 <div class="switch-container" title="-">
                     <span class="switch-label">[x] カスタムテーマ</span>
@@ -212,6 +220,18 @@
                     <a href="../gas/setupgas.html" target="_blank" rel="noopener noreferrer" style="color: rgb(220, 220, 220)">通知機能の有効化方法について</a>
                 </div>
             </div>
+            <div id="header-links-options" class="options-group">
+                <div class="container options-container">
+                    <h2 class="gradient-label">ヘッダーリンク設定</h2>
+                    <div id="header-links-list"></div>
+                    <div class="header-link-add">
+                        <input type="text" id="header-link-name" placeholder="表示名 (例: KU-PORT)">
+                        <input type="text" id="header-link-url" placeholder="URL (例: https://ku-port.sc.kogakuin.ac.jp/)">
+                        <button id="header-link-add-btn" type="button">追加</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 

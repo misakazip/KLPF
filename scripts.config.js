@@ -150,6 +150,15 @@ export const CONTENT_SCRIPTS_CONFIG = [
         runAt: 'document_end',
         enabledByDefault: true,
     },
+    {
+        id: 'HeaderLinks',
+        storageKey: 'headerLinks_enabled',
+        js: [MODULES.DOM_UTILS, `${PATHS.FEATURES}headerlinks.js`],
+        matches: [URLS.KOGAKUIN_LMS],
+        runAt: 'document_end',
+        enabledByDefault: true,
+        optionsPanelId: 'header-links-options',
+    },
 ];
 
 /**

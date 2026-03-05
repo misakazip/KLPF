@@ -252,55 +252,64 @@ async function runAutomation() {
         
         const myCode =`
   try {
-    const userEmail = Session.getActiveUser().getEmail();
-    const subject = \`【課題通知】セットアップ完了のお知らせ\`;
-    const body = \`
-      <div style="font-family: sans-serif; text-align: left; max-width: 600px; margin: auto;">
-        <p><strong>自動環境構築セットアップが完了しました</strong></p>
-        <p>今後、登録された課題の締切が近づくと、このメールアドレスに通知が届きます。</p>
-        <p>このスクリプトは10分ごとに自動で実行され、リマインダーをチェックします。</p>
-        <p>締切期限の18時間前、6時間前、1時間前の計3回メールが送信されます。</p>
-        <p style="text-align: center; margin-top: 24px; margin-bottom: 24px;">
-        <a href="https://study.ns.kogakuin.ac.jp" style="display: inline-block; background-color: #5B9DFF; color: #ffffff; padding: 12px 48px; text-decoration: none; border-radius: 8px; font-weight: bold;">Ku-LMSを開く</a>
-        </p>
-        <hr>
-        <p style="color: #888; font-size: 0.8em;">このメールは拡張機能KLPFによって自動送信されました。</p>
-      </div>
-    \`;
-    GmailApp.sendEmail(userEmail, subject, "", { htmlBody: body });
-    console.log(\`セットアップ完了のメールを \${userEmail} に送信しました。\`);
+    const calName = 'KLPF課題';
+    let klpfCalendar = null;
+    const calendars = CalendarApp.getCalendarsByName(calName);
+    if (calendars.length > 0) {
+      klpfCalendar = calendars[0];
+    } else {
+      klpfCalendar = CalendarApp.createCalendar(calName);
+    }
+    PropertiesService.getUserProperties().setProperty('KLPF_CALENDAR_ID', klpfCalendar.getId());
+
+    const now = new Date();
+    const testEnd = new Date(now.getTime() + 30 * 60 * 1000);
+    const testEvent = klpfCalendar.createEvent('✅ KLPF セットアップ完了', now, testEnd);
+    testEvent.setDescription('KLPFの課題リマインダーがGoogleカレンダーに正常にセットアップされました。\\nこのイベントは削除して構いません。');
+
+    console.log('セットアップ完了: KLPF課題カレンダーを作成しました。');
+    console.log('Googleカレンダーに「KLPF課題」カレンダーが追加されました。');
+    console.log('セットアップは正常に終了しました。このタブを閉じてKu-LMSで課題リストアップの更新を行ってください。');
   } catch (error) {
-    console.error("テストメールの送信に失敗しました:", error);
+    console.error("セットアップに失敗しました:", error);
     return;
   }
-
-  clearAllTriggers();
-
-  ScriptApp.newTrigger('checkDeadlinesAndSendReminders')
-      .timeBased()
-      .everyMinutes(10)
-      .create();
-  
-  console.log('10分ごとに実行するトリガーをセットしました。');
-  console.log('セットアップは正常に終了しました。このタブを閉じてKu-LMSで課題リストアップの更新を行ってください。');
 }
 
 // Copyright (c) 2025 SAYU
 // This software is released under the MIT License, see LICENSE.
 
-const PROPERTIES_KEY = 'HOMEWORKS_DATA'; 
+const PROPERTIES_KEY = 'HOMEWORKS_DATA';
+const CALENDAR_NAME = 'KLPF課題';
+
+function getOrCreateKLPFCalendar() {
+  const userProps = PropertiesService.getUserProperties();
+  const storedId = userProps.getProperty('KLPF_CALENDAR_ID');
+  if (storedId) {
+    const cal = CalendarApp.getCalendarById(storedId);
+    if (cal) return cal;
+  }
+  const cals = CalendarApp.getCalendarsByName(CALENDAR_NAME);
+  if (cals.length > 0) {
+    userProps.setProperty('KLPF_CALENDAR_ID', cals[0].getId());
+    return cals[0];
+  }
+  const newCal = CalendarApp.createCalendar(CALENDAR_NAME);
+  userProps.setProperty('KLPF_CALENDAR_ID', newCal.getId());
+  return newCal;
+}
 
 function doPost(e) {
   try {
     const incomingHomeworks = JSON.parse(e.postData.contents);
     const userProperties = PropertiesService.getUserProperties();
-    
+
     const currentDataJSON = userProperties.getProperty(PROPERTIES_KEY);
     const homeworks = currentDataJSON ? JSON.parse(currentDataJSON) : [];
-
     const updatedHomeworks = updateHomeworkList(homeworks, incomingHomeworks);
-
     userProperties.setProperty(PROPERTIES_KEY, JSON.stringify(updatedHomeworks.homeworks));
+
+    syncCalendarEvents(updatedHomeworks.homeworks);
 
     const message = \`\${updatedHomeworks.addedCount}件の新しい課題を登録し、\${updatedHomeworks.removedCount}件の提出済み課題を削除しました。 (締切日なしの課題は\${updatedHomeworks.ignoredCount}件スキップしました)\`;
 
@@ -316,6 +325,29 @@ function doPost(e) {
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function syncCalendarEvents(homeworks) {
+  const calendar = getOrCreateKLPFCalendar();
+  const now = new Date();
+  const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const existingEvents = calendar.getEvents(now, farFuture);
+  existingEvents.forEach(event => event.deleteEvent());
+
+  homeworks.forEach(hw => {
+    const deadlineStr = hw.deadline.replace(/\\s\\(.\\)/, '');
+    const deadline = new Date(deadlineStr.replace(/年|月/g, "/").replace("日", ""));
+    if (isNaN(deadline.getTime()) || deadline <= now) return;
+
+    const startTime = new Date(deadline.getTime() - 60 * 60 * 1000);
+    const title = \`📝 \${hw.homeworkName} (\${hw.lessonName})\`;
+    const event = calendar.createEvent(title, startTime, deadline);
+    event.setDescription(\`授業名: \${hw.lessonName}\\n課題名: \${hw.homeworkName}\\n締切: \${hw.deadline}\`);
+    event.removeAllReminders();
+    event.addPopupReminder(1080);
+    event.addPopupReminder(360);
+    event.addPopupReminder(60);
+  });
 }
 
 function updateHomeworkList(currentList, incomingList) {
@@ -343,8 +375,7 @@ function updateHomeworkList(currentList, incomingList) {
             keptHomeworks.push({
                 lessonName: h.lessonName,
                 homeworkName: h.homeworkName,
-                deadline: h.deadline,
-                reminders: { h18: false, h6: false, h1: false } 
+                deadline: h.deadline
             });
             addedCount++;
         }
@@ -353,130 +384,13 @@ function updateHomeworkList(currentList, incomingList) {
     return { homeworks: keptHomeworks, addedCount, removedCount, ignoredCount };
 }
 
-function checkDeadlinesAndSendReminders() {
-  const userProperties = PropertiesService.getUserProperties();
-  const homeworksJSON = userProperties.getProperty(PROPERTIES_KEY);
-  if (!homeworksJSON) return;
-
-  let homeworks = JSON.parse(homeworksJSON);
-  const now = new Date();
-  
-  const remindersToSend = {
-    h18: [],
-    h6: [],
-    h1: []
-  };
-  let dataWasUpdated = false;
-
-  homeworks.forEach(hw => {
-    const deadlineStr = hw.deadline.replace(/\\s\\(.\\)/, '');
-    const deadline = new Date(deadlineStr.replace(/年|月/g, "/").replace("日", ""));
-    
-    const reminderChecks = [
-      { hours: 18, flag: 'h18', text: "18時間" },
-      { hours: 6,  flag: 'h6',  text: "6時間" },
-      { hours: 1,  flag: 'h1',  text: "1時間" }
-    ];
-
-    for (const check of reminderChecks) {
-      const reminderTime = new Date(deadline.getTime() - (check.hours * 60 * 60 * 1000));
-      if (now >= reminderTime && !hw.reminders[check.flag]) {
-        remindersToSend[check.flag].push(hw);
-        hw.reminders[check.flag] = true;
-        dataWasUpdated = true;
-      }
-    }
-  });
-
-  const userEmail = Session.getActiveUser().getEmail();
-
-  if (remindersToSend.h18.length > 0) {
-    sendGroupedReminderEmail(userEmail, remindersToSend.h18, "18時間", homeworks);
-  }
-  if (remindersToSend.h6.length > 0) {
-    sendGroupedReminderEmail(userEmail, remindersToSend.h6, "6時間", homeworks);
-  }
-  if (remindersToSend.h1.length > 0) {
-    sendGroupedReminderEmail(userEmail, remindersToSend.h1, "1時間", homeworks);
-  }
-
-  if (dataWasUpdated) {
-    userProperties.setProperty(PROPERTIES_KEY, JSON.stringify(homeworks));
-  }
-}
-
-function sendGroupedReminderEmail(userEmail, groupedHomeworks, remainingTimeText, allHomeworks) {
-  const subject = \`【課題通知】締切まで約\${remainingTimeText}の課題が\${groupedHomeworks.length}件あります\`;
-  
-  let mainHomeworksHtml = "";
-  groupedHomeworks.forEach(hw => {
-    mainHomeworksHtml += \`
-      <div style="border: 1px solid #ddd; padding: 16px; margin-bottom: 16px; border-radius: 8px; background-color: #f9f9f9;">
-        <p><strong>締切日:</strong> \${hw.deadline}</p>
-        <p><strong>授業名:</strong> \${hw.lessonName}</p>
-        <p><strong>課題名:</strong> \${hw.homeworkName}</p>
-      </div>
-    \`;
-  });
-
-  const otherHomeworksHtml = createOtherHomeworksHtml(groupedHomeworks, allHomeworks);
-
-  const body = \`
-    <div style="font-family: sans-serif; text-align: left; max-width: 600px; margin: auto;">
-      <p style="font-size: 1.1em; color: #D32F2F;"><strong>以下の\${groupedHomeworks.length}件の課題が、\${remainingTimeText}以内に締め切りになります！</strong></p>
-      <p>Ku-LMSを開いて確認してください。</p>
-      \${mainHomeworksHtml}
-      <p>提出しているにもかかわらずこのメールが受信された場合は、課題リストが正しく更新されていない可能性があります。Ku-LMSホーム画面で課題リストアップの更新を完了させてください。</p>
-      <p style="text-align: center; margin-top: 24px; margin-bottom: 24px;">
-        <a href="https://study.ns.kogakuin.ac.jp" style="display: inline-block; background-color: #5B9DFF; color: #ffffff; padding: 12px 48px; text-decoration: none; border-radius: 8px; font-weight: bold;">Ku-LMSを開く</a>
-      </p>
-      \${otherHomeworksHtml}
-      <hr>
-      <p style="color: #888; font-size: 0.8em;">このメールは拡張機能KLPFによって自動送信されました。</p>
-    </div>
-  \`;
-  
-  GmailApp.sendEmail(userEmail, subject, "", { htmlBody: body });
-}
-
-function createOtherHomeworksHtml(mainHomeworks, allHomeworks) {
-    const mainKeys = new Set(mainHomeworks.map(h => \`\${h.lessonName}|\${h.homeworkName}|\${h.deadline}\`));
-
-    const otherHomeworksList = allHomeworks.filter(h => {
-        const key = \`\${h.lessonName}|\${h.homeworkName}|\${h.deadline}\`;
-        if (mainKeys.has(key)) {
-            return false;
-        }
-        const deadlineStr = h.deadline.replace(/\\s\\(.\\)/, '');
-        const deadline = new Date(deadlineStr.replace(/年|月/g, "/").replace("日", ""));
-        return deadline > new Date();
-    });
-
-    otherHomeworksList.sort((a, b) => {
-        const dateA_str = a.deadline.replace(/\\s\\(.\\)/, '');
-        const dateB_str = b.deadline.replace(/\\s\\(.\\)/, '');
-        const dateA = new Date(dateA_str.replace(/年|月/g, "/").replace("日", ""));
-        const dateB = new Date(dateB_str.replace(/年|月/g, "/").replace("日", ""));
-        return dateA - dateB;
-    });
-
-    if (otherHomeworksList.length === 0) return "";
-
-    let html = '<h3 style="margin-top: 24px; border-bottom: 1px solid #ccc; padding-bottom: 8px;">その他に締切が近い課題</h3><ul style="padding-left: 20px; list-style-type: none;">';
-    otherHomeworksList.forEach(item => {
-        html += \`<li style="margin-bottom: 12px;"><strong>\${item.lessonName}</strong><br>　→\${item.homeworkName}<br><span style="font-size: 0.9em; color: #555;">(締切: \${item.deadline})</span></li>\`;
-    });
-    html += '</ul>';
-    return html;
-}
-
 function showScheduledHomework() {
   const homeworksJSON = PropertiesService.getUserProperties().getProperty(PROPERTIES_KEY);
   if (!homeworksJSON || homeworksJSON === '[]') {
     console.log('現在登録されている課題リマインダーはありません。');
     return;
   }
-  
+
   const homeworks = JSON.parse(homeworksJSON);
   console.log(\`--- 現在登録されている課題リマインダー (\${homeworks.length}件) ---\`);
   homeworks.forEach((hw, index) => {
@@ -484,23 +398,17 @@ function showScheduledHomework() {
     console.log(\`  締切日: \${hw.deadline}\`);
     console.log(\`  授業名: \${hw.lessonName}\`);
     console.log(\`  課題名: \${hw.homeworkName}\`);
-    console.log(\`  通知状況: 18時間前:\${hw.reminders.h18}, 6時間前:\${hw.reminders.h6}, 1時間前:\${hw.reminders.h1}\`);
     console.log('--------------------');
   });
 }
 
-function clearAllTriggers() {
-    const allTriggers = ScriptApp.getProjectTriggers();
-    for (const trigger of allTriggers) {
-        if (trigger.getHandlerFunction() === 'checkDeadlinesAndSendReminders') {
-            ScriptApp.deleteTrigger(trigger);
-        }
-    }
-}
-
-function clearAllDataAndTriggers() {
-  clearAllTriggers();
-  console.log('定期実行トリガーを削除しました。');
+function clearAllDataAndEvents() {
+  const calendar = getOrCreateKLPFCalendar();
+  const now = new Date();
+  const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const existingEvents = calendar.getEvents(now, farFuture);
+  existingEvents.forEach(event => event.deleteEvent());
+  console.log('カレンダーイベントを全て削除しました。');
   PropertiesService.getUserProperties().deleteProperty(PROPERTIES_KEY);
   console.log('すべての課題データを削除しました。');
   console.log('リセットが完了しました。');

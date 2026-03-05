@@ -20,6 +20,12 @@
                 border: 2px solid #d9534f !important;
                 box-shadow: 0 0 10px rgba(217, 83, 79, 0.5);
             }
+            .lms-card.klpf-unavailable {
+                opacity: 0.45;
+                filter: grayscale(100%);
+                pointer-events: auto;
+                position: relative;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -61,6 +67,17 @@
             semesterCode: {"通年":"01", "前期":"02", "後期":"03", "1Q":"04", "2Q":"05", "3Q":"06", "4Q":"07", "集中・特週":"08", "自己学習":"09", "その他":"10", "講義":"11"}[semesterText.split(' ')[0]] || '',
             semesterText: semesterText
         };
+    }
+
+    function grayOutUnavailableCards() {
+        safeQuerySelectorAll('.lms-card').forEach(card => {
+            const unavailable = safeQuerySelector('.private2', card);
+            if (unavailable && unavailable.textContent.trim() === '利用不可') {
+                card.classList.add('klpf-unavailable');
+            } else {
+                card.classList.remove('klpf-unavailable');
+            }
+        });
     }
 
     function toggleSearchButtonVisibility(isAutoActive) {
@@ -196,6 +213,7 @@
 
         applyClientSideFilter(form);
         setupEventListeners(form);
+        grayOutUnavailableCards();
         highlightCurrentClass();
         setInterval(highlightCurrentClass, 60000);
 

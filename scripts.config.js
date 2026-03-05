@@ -159,6 +159,14 @@ export const CONTENT_SCRIPTS_CONFIG = [
         enabledByDefault: true,
         optionsPanelId: 'header-links-options',
     },
+    {
+        id: 'NewsWidget',
+        storageKey: 'newsWidget',
+        js: [MODULES.DOM_UTILS, `${PATHS.FEATURES}newswidget.js`],
+        matches: [URLS.KOGAKUIN_LMS_HOME],
+        runAt: 'document_end',
+        enabledByDefault: true,
+    },
 ];
 
 /**

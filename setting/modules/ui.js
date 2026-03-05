@@ -67,7 +67,7 @@ function cacheDOMElements() {
     elements.autoAttendCheckbox = document.getElementById("auto-attend");
     elements.autoMeetCheckbox = document.getElementById('auto-meet');
     elements.darkModeCheckbox = document.getElementById('dark-mode');
-    //elements.customThemeCheckbox = document.getElementById('custom-theme');
+    elements.customThemeCheckbox = document.getElementById('custom-theme');
     elements.homeworkSwitch = document.getElementById('home-work');
     elements.homeworkNotificationCheckbox = document.getElementById('homework-notification');
 
@@ -147,26 +147,12 @@ function initCustomCursor() {
  * 機能間の依存関係や排他制御を設定する。
  */
 function setupInteractions() {
-    const { autoAttendCheckbox, autoMeetCheckbox, darkModeCheckbox, customThemeCheckbox } = elements;
+    const { autoAttendCheckbox, autoMeetCheckbox } = elements;
 
     autoAttendCheckbox?.addEventListener('change', () => {
         if (autoAttendCheckbox.checked && !autoMeetCheckbox.checked) {
             autoMeetCheckbox.checked = true;
             autoMeetCheckbox.dispatchEvent(new Event('change'));
-        }
-    });
-
-    darkModeCheckbox?.addEventListener('change', () => {
-        if (darkModeCheckbox.checked && customThemeCheckbox?.checked) {
-            customThemeCheckbox.checked = false;
-            customThemeCheckbox.dispatchEvent(new Event('change'));
-        }
-    });
-
-    customThemeCheckbox?.addEventListener('change', () => {
-        if (customThemeCheckbox.checked && darkModeCheckbox.checked) {
-            darkModeCheckbox.checked = false;
-            darkModeCheckbox.dispatchEvent(new Event('change'));
         }
     });
 }

@@ -59,6 +59,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'AutoLoginScript',
         storageKey: 'autoLogin',
+        displayName: '自動ログイン',
+        displayOrder: 10,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, MODULES.TOTP, `${PATHS.FEATURES}AutoLogin.js`],
         matches: [URLS.KOGAKUIN_LMS, URLS.SECIOSS],
         runAt: 'document_start',
@@ -68,6 +70,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'TimeDisplayScript',
         storageKey: 'showTime',
+        displayName: '授業時間表示',
+        displayOrder: 100,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}time.js`],
         matches: [URLS.KOGAKUIN_LMS],
         runAt: 'document_idle',
@@ -75,6 +79,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'AutoAttendScript',
         storageKey: 'autoAttend',
+        displayName: '[β] 自動出席',
+        displayOrder: 50,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}attend.js`],
         matches: [URLS.KOGAKUIN_LMS, URLS.GOOGLE_MEET],
         runAt: 'document_idle',
@@ -83,6 +89,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'MeetJoinScript',
         storageKey: 'autoMeet',
+        displayName: 'Meetミュート参加',
+        displayOrder: 40,
         js: [MODULES.DOM_UTILS, `${PATHS.FEATURES}meet.js`],
         matches: [URLS.GOOGLE_MEET],
         runAt: 'document_idle',
@@ -91,6 +99,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'KuPortDialogCloseScript',
         storageKey: 'kuportDialogOutsideClose',
+        displayName: 'KP枠外簡易閉',
+        displayOrder: 90,
         js: [MODULES.DOM_UTILS, `${PATHS.FEATURES}kuportDialogClose.js`],
         matches: [URLS.KOGAKUIN_KUPORT],
         runAt: 'document_end',
@@ -99,6 +109,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'SearchSubject',
         storageKey: 'searchSubject',
+        displayName: '履修中科目のみ表示',
+        displayOrder: 80,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}subject.js`],
         matches: [URLS.KOGAKUIN_LMS_HOME],
         runAt: 'document_start',
@@ -107,6 +119,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'DarkMode',
         storageKey: 'darkMode',
+        displayName: '[β] ダークモード',
+        displayOrder: 110,
         js: [`${PATHS.FEATURES}darkmode.js`],
         matches: [URLS.KOGAKUIN_LMS],
         runAt: 'document_start',
@@ -114,6 +128,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'Homework',
         storageKey: 'homework',
+        displayName: '課題リストアップ',
+        displayOrder: 30,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}homework.js`],
         matches: [URLS.KOGAKUIN_LMS_HOME],
         runAt: 'document_end',
@@ -123,6 +139,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'HomeAttendanceBadge',
         storageKey: 'homeAttendanceBadge',
+        displayName: 'ホーム出席表示',
+        displayOrder: 60,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}homeAttendance.js`],
         matches: [URLS.KOGAKUIN_LMS_HOME],
         runAt: 'document_idle',
@@ -131,6 +149,8 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'logoutblock',
         storageKey: 'logoutblock',
+        displayName: '自動ログアウト無効',
+        displayOrder: 20,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}LMSlogoutblock.js`],
         matches: [URLS.KOGAKUIN_LMS_GENERAL],
         runAt: 'document_end',
@@ -146,11 +166,25 @@ export const CONTENT_SCRIPTS_CONFIG = [
     {
         id: 'kyozaiopen',
         storageKey: 'kyozaiopen',
+        displayName: '教材一括開封',
+        displayOrder: 70,
         js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}kyozaiopen.js`],
         matches: [URLS.KOGAKUIN_LMS_hH_KYOZAI,URLS.KOGAKUIN_LMS_cC,URLS.KOGAKUIN_LMS_sS],
         runAt: 'document_end',
         enabledByDefault: true,
     },
+    /*
+    --- 新機能追加テンプレート ---
+    {
+        id: 'TodoFeatureScript',
+        storageKey: 'todoFeature',
+        js: [MODULES.CONSTANTS, MODULES.DOM_UTILS, `${PATHS.FEATURES}TodoFeature.js`],
+        matches: [URLS.KOGAKUIN_LMS],
+        runAt: 'document_end',
+        enabledByDefault: false,
+        optionsPanelId: 'todo-feature-options',
+    },
+    */
     {
         id: 'DropSubmit',
         storageKey: 'dropSubmit',

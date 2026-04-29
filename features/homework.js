@@ -69,24 +69,21 @@ function setupHomeworkClickListener(containerId, sid) {
     });
 }
 
+const GAS_WEBHOOK_URL_PATTERN = /^https:\/\/script\.google\.com\/a\/macros\/g\.kogakuin\.jp\/s\//;
+
 /**
  * 課題データをGoogle Apps Scriptに送信する。
  * @param {HomeworkItem[]} homeworkData - 送信する課題データの配列。
  */
-function sendHomeworkToGAS(homeworkData) {
+async function sendHomeworkToGAS(homeworkData) {
     if (homeworkData.length === 0) return;
-    
-    chrome.storage.sync.get(["gaswebhookurl"], function(result) {
-        const gas_webhook = result.gaswebhookurl;
 
-        if (!gas_webhook || !gas_webhook.match(/^https:\/\/script\.google\.com\/a\/macros\/g\.kogakuin\.jp\/s\//)) {
-            console.log("GASのWebhook URLが正しくないため、処理を中断しました。");
-            return;
-        }
+    const { gaswebhookurl } = await chrome.storage.sync.get(["gaswebhookurl"]);
+    if (!gaswebhookurl || !GAS_WEBHOOK_URL_PATTERN.test(gaswebhookurl)) {
+        console.log("[KLPF] GASのWebhook URLが正しくないため、処理を中断しました。");
+        return;
+    }
 
-    });
-
-    // 日付でソートしてから送信
     const sortedData = [...homeworkData].sort((a, b) => {
         const dateA = new Date(a.deadline.replace(/年|月/g, "/").replace("日", ""));
         const dateB = new Date(b.deadline.replace(/年|月/g, "/").replace("日", ""));

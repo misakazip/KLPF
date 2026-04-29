@@ -3,6 +3,8 @@
 
 import { CONTENT_SCRIPTS_CONFIG, GAS_SETUP_CONFIG, CONTEXT_MENU_ID, BASIC_AUTH_CONFIG } from './scripts.config.js';
 
+const GAS_WEBHOOK_URL_PATTERN = /^https:\/\/script\.google\.com\/a\/macros\/g\.kogakuin\.jp\/s\//;
+
 /**
  * コンテンツスクリプトを登録する。
  * @param {ContentScriptConfig} config - 登録するスクリプトの設定。
@@ -177,6 +179,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const result = await chrome.storage.sync.get(["gaswebhookurl", "gasWebhook"]);
                 if (!result.gaswebhookurl || !result.gasWebhook) {
                     throw new Error('GAS Webhook URLが未設定です。');
+                }
+                if (!GAS_WEBHOOK_URL_PATTERN.test(result.gaswebhookurl)) {
+                    throw new Error('GAS Webhook URLの形式が不正です。');
                 }
 
                 const response = await fetch(result.gaswebhookurl, {

@@ -26,9 +26,30 @@
         CLEAR_BUTTON: 'input[type="button"][onclick^="delFile"]',
     };
 
+    const FONT_AWESOME_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css';
+    const FONT_AWESOME_LINK_ID = 'klpf-fontawesome-css';
+
+    const ICON = {
+        DROP: '<i class="fa-solid fa-folder-open" aria-hidden="true"></i>',
+        FILE: '<i class="fa-solid fa-paperclip" aria-hidden="true"></i>',
+        REMOVE: '<i class="fa-solid fa-xmark" aria-hidden="true"></i>',
+    };
+
+    /** Font Awesome CSSを一度だけ読み込む */
+    function injectFontAwesome() {
+        if (document.getElementById(FONT_AWESOME_LINK_ID)) return;
+        const link = document.createElement('link');
+        link.id = FONT_AWESOME_LINK_ID;
+        link.rel = 'stylesheet';
+        link.href = FONT_AWESOME_CDN;
+        link.crossOrigin = 'anonymous';
+        link.referrerPolicy = 'no-referrer';
+        document.head.appendChild(link);
+    }
+
     const STYLES = `
         #${DROP_ZONE_ID}{border:3px dashed #4a90d9;border-radius:12px;padding:32px 20px;margin:16px 0;text-align:center;background:#f0f6ff;transition:all .2s;cursor:pointer;position:relative}
-        #${DROP_ZONE_ID} .drop-icon{font-size:48px;margin-bottom:8px;display:block}
+        #${DROP_ZONE_ID} .drop-icon{font-size:48px;margin-bottom:8px;display:block;color:#1e40af}
         #${DROP_ZONE_ID} .drop-main-text{font-size:16px;font-weight:bold;color:#1e40af;margin-bottom:4px}
         #${DROP_ZONE_ID} .drop-sub-text{font-size:13px;color:#6b7280}
         #${DROP_ZONE_ID} .drop-file-list{margin-top:12px;text-align:left;font-size:13px;color:#374151}
@@ -41,7 +62,7 @@
         #${OVERLAY_ID}{display:none;position:fixed;inset:0;background:rgba(37,99,235,.12);z-index:99999;justify-content:center;align-items:center;flex-direction:column}
         #${OVERLAY_ID}.active{display:flex}
         #${OVERLAY_ID} *{pointer-events:none}
-        #${OVERLAY_ID} .overlay-icon{font-size:64px;margin-bottom:12px}
+        #${OVERLAY_ID} .overlay-icon{font-size:64px;margin-bottom:12px;color:#1e40af}
         #${OVERLAY_ID} .overlay-text{font-size:22px;font-weight:bold;color:#1e40af;text-shadow:0 1px 4px rgba(255,255,255,.8)}
         #${OVERLAY_ID} .overlay-sub{font-size:14px;color:#3b82f6;margin-top:4px}
     `;
@@ -189,7 +210,7 @@
         if (stagedFiles.length === 0) { listEl.innerHTML = ''; return; }
 
         listEl.innerHTML = stagedFiles.map((f, i) =>
-            `<span class="drop-file-item">📎 ${escapeHtml(f.name)} (${formatFileSize(f.size)})<button class="remove-btn" data-index="${i}" title="削除">✕</button></span>`
+            `<span class="drop-file-item">${ICON.FILE} ${escapeHtml(f.name)} (${formatFileSize(f.size)})<button class="remove-btn" data-index="${i}" title="削除">${ICON.REMOVE}</button></span>`
         ).join('');
 
         listEl.querySelectorAll('.remove-btn').forEach(btn => {
@@ -241,7 +262,7 @@
 
         const zone = document.createElement('div');
         zone.id = DROP_ZONE_ID;
-        zone.innerHTML = `<span class="drop-icon">📂</span><div class="drop-main-text">ページ全体にファイルをドラッグ&ドロップ</div><div class="drop-sub-text">${subText}</div><div class="drop-file-list" id="klpf-drop-file-list"></div>`;
+        zone.innerHTML = `<span class="drop-icon">${ICON.DROP}</span><div class="drop-main-text">ページ全体にファイルをドラッグ&ドロップ</div><div class="drop-sub-text">${subText}</div><div class="drop-file-list" id="klpf-drop-file-list"></div>`;
         firstRow.parentElement.insertBefore(zone, firstRow);
 
         // クリックでファイル選択
@@ -255,7 +276,7 @@
     function setupPageWideDragDrop() {
         const overlay = document.createElement('div');
         overlay.id = OVERLAY_ID;
-        overlay.innerHTML = `<span class="overlay-icon">📂</span><div class="overlay-text">ここにファイルをドロップして追加</div><div class="overlay-sub">最大 ${MAX_FILE_COUNT}ファイル / ${MAX_FILE_SIZE_MB}MB</div>`;
+        overlay.innerHTML = `<span class="overlay-icon">${ICON.DROP}</span><div class="overlay-text">ここにファイルをドロップして追加</div><div class="overlay-sub">最大 ${MAX_FILE_COUNT}ファイル / ${MAX_FILE_SIZE_MB}MB</div>`;
         document.body.appendChild(overlay);
 
         let dragCounter = 0;
@@ -283,6 +304,8 @@
             return;
         }
         console.log(`[${FEATURE_NAME}] 課題提出ページを検出。ページ全体D&Dを有効化します。`);
+
+        injectFontAwesome();
 
         const style = document.createElement('style');
         style.id = 'klpf-dropsubmit-style';

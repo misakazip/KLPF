@@ -17,8 +17,8 @@
         style.textContent = `
             .lms-weekly-area { visibility: hidden; }
             .${SUBJECT_HIGHLIGHT_CLASS} {
-                border: 2px solid #d9534f !important;
-                box-shadow: 0 0 10px rgba(217, 83, 79, 0.5);
+                border: 2px solid #2563eb !important;
+                box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
             }
             .lms-card.klpf-unavailable {
                 opacity: 0.45;

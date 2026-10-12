@@ -35,7 +35,7 @@ setupgas.cssとsetupgas.jsで目次・コードコピー・表示位置を補助
             <div class="hero-inner">
                 <p class="eyebrow">HOMEWORK NOTIFICATION</p>
                 <h1 id="page-title">課題の締切を、<br>見逃さないための通知設定。</h1>
-                <p class="hero-lead">KLPFがKU-LMSから取得した課題一覧をWebhookへ送り、GASによるメール通知や、自分で作った通知サービスと連携できるようにします。</p>
+                <p class="hero-lead">KLPFがKU-LMSから取得した課題一覧をWebhookへ送り、GASによるGoogleカレンダー連携や、自分で作った通知サービスと連携できるようにします。</p>
                 <div class="hero-actions">
                     <a class="button button-primary" href="#manual-setup">手動で設定を始める</a>
                     <a class="button button-secondary" href="#custom-webhook">自作Webhookを使う人はこちら</a>
@@ -43,7 +43,7 @@ setupgas.cssとsetupgas.jsで目次・コードコピー・表示位置を補助
                 <dl class="hero-facts">
                     <div><dt>送信タイミング</dt><dd>課題リスト更新時</dd></div>
                     <div><dt>送信形式</dt><dd>JSON / POST</dd></div>
-                    <div><dt>標準通知</dt><dd>18・6・1時間前</dd></div>
+                    <div><dt>カレンダー通知</dt><dd>予定開始の18・6・1時間前</dd></div>
                 </dl>
             </div>
         </section>
@@ -67,10 +67,10 @@ setupgas.cssとsetupgas.jsで目次・コードコピー・表示位置を補助
                 <section class="guide-section intro-section" aria-labelledby="about-title">
                     <p class="section-index">はじめに</p>
                     <h2 id="about-title">この設定でできること</h2>
-                    <p class="section-lead">「課題リストアップ」が集めた未提出課題を、設定したWebhook URLへまとめて送信します。標準のGASコードを使う場合は、10分ごとに締切を確認し、締切の18時間前・6時間前・1時間前に自分宛てのメールを送れます。</p>
+                    <p class="section-lead">「課題リストアップ」が集めた未提出課題を、設定したWebhook URLへまとめて送信します。標準のGASコードを使う場合は、「KLPF課題」専用カレンダーに締切までの1時間の予定を登録し、予定開始の18時間前・6時間前・1時間前にポップアップ通知を設定します。</p>
                     <div class="capability-list">
                         <div><strong>課題を自動同期</strong><span>授業名・課題名・期限などをWebhookへ送信します。</span></div>
-                        <div><strong>Gmailでリマインド</strong><span>標準GASを使えば、自分のGoogleアカウントから自分へ通知します。</span></div>
+                        <div><strong>Googleカレンダーでリマインド</strong><span>標準GASを使えば、専用カレンダーに課題を同期します。同期時は専用カレンダー内の今後1年の予定を削除して再作成するため、手動の予定を入れないでください。</span></div>
                         <div><strong>自由に拡張</strong><span>Discord、Slack、自作APIなどへつなぐ処理を自分で実装できます。</span></div>
                     </div>
                     <div class="notice notice-important"><strong>現在、自動環境構築は利用できません。</strong><span>以下の手動手順で設定してください。すでに作成済みのWebhookは引き続き利用できます。</span></div>
@@ -79,12 +79,12 @@ setupgas.cssとsetupgas.jsで目次・コードコピー・表示位置を補助
                 <section class="guide-section" id="manual-setup" aria-labelledby="manual-title">
                     <p class="section-index">01 / RECOMMENDED</p>
                     <h2 id="manual-title">Google Apps Scriptを手動で構築する</h2>
-                    <p class="section-lead">標準のメール通知を使いたい場合はこちらです。GoogleアカウントでGASプロジェクトを作り、掲載コードを貼り付けてWebアプリとして公開します。</p>
+                    <p class="section-lead">標準のGoogleカレンダー連携を使いたい場合はこちらです。GoogleアカウントでGASプロジェクトを作り、掲載コードを貼り付けてWebアプリとして公開します。</p>
                     <ol class="steps">
             <li>
                 <span class="step-number">1</span>
                 <div><h3>Googleアカウントを確認してプロジェクトを作成</h3>
-                <p>通知の送信元・受信先に使うGoogleアカウントへログインし、新しいGoogle Apps Scriptプロジェクトを開きます。</p>
+                <p>カレンダーを作成するGoogleアカウントへログインし、新しいGoogle Apps Scriptプロジェクトを開きます。</p>
                 <div class="inline-actions"><a class="text-link" href="https://accounts.google.co.jp/" target="_blank" rel="noopener noreferrer">Googleへログイン</a><a class="text-link" href="https://script.google.com/home/projects/create" target="_blank" rel="noopener noreferrer">GASプロジェクトを作成</a></div></div>
             </li>
             <li>
@@ -112,41 +112,49 @@ function main() { ... }</code></pre>
 
 function main() {
   try {
-    const userEmail = Session.getActiveUser().getEmail();
-    const subject = `【課題通知】セットアップ完了のお知らせ`;
-    const body = `
-      &lt;div style="font-family: sans-serif; text-align: left; max-width: 600px; margin: auto;"&gt;
-        &lt;p&gt;&lt;strong&gt;環境構築セットアップが完了しました&lt;/strong&gt;&lt;/p&gt;
-        &lt;p&gt;今後、登録された課題の締切が近づくと、このメールアドレスに通知が届きます。&lt;/p&gt;
-        &lt;p&gt;このスクリプトは10分ごとに自動で実行され、リマインダーをチェックします。&lt;/p&gt;
-        &lt;p&gt;締切期限の18時間前、6時間前、1時間前の計3回メールが送信されます。&lt;/p&gt;
-        &lt;p style="text-align: center; margin-top: 24px; margin-bottom: 24px;"&gt;
-        &lt;a href="https://study.ns.kogakuin.ac.jp" style="display: inline-block; background-color: #5B9DFF; color: #ffffff; padding: 12px 48px; text-decoration: none; border-radius: 8px; font-weight: bold;"&gt;Ku-LMSを開く&lt;/a&gt;
-        &lt;/p&gt;
-        &lt;hr&gt;
-        &lt;p style="color: #888; font-size: 0.8em;"&gt;このメールは拡張機能KLPFによって自動送信されました。&lt;/p&gt;
-      &lt;/div&gt;
-    `;
-    GmailApp.sendEmail(userEmail, subject, "", { htmlBody: body });
-    console.log(`セットアップ完了のメールを ${userEmail} に送信しました。`);
+    const calName = 'KLPF課題';
+    let klpfCalendar = null;
+    const calendars = CalendarApp.getCalendarsByName(calName);
+    if (calendars.length &gt; 0) {
+      klpfCalendar = calendars[0];
+    } else {
+      klpfCalendar = CalendarApp.createCalendar(calName);
+    }
+    PropertiesService.getUserProperties().setProperty('KLPF_CALENDAR_ID', klpfCalendar.getId());
+
+    const now = new Date();
+    const testEnd = new Date(now.getTime() + 30 * 60 * 1000);
+    const testEvent = klpfCalendar.createEvent('✅ KLPF セットアップ完了', now, testEnd);
+    testEvent.setDescription('KLPFの課題リマインダーがGoogleカレンダーに正常にセットアップされました。\nこのイベントは削除して構いません。');
+
+    console.log('セットアップ完了: KLPF課題カレンダーを作成しました。');
+    console.log('セットアップは正常に終了しました。このタブを閉じてKu-LMSで課題リストアップの更新を行ってください。');
   } catch (error) {
-    console.error("テストメールの送信に失敗しました:", error);
+    console.error("セットアップに失敗しました:", error);
     return;
   }
-
-  clearAllTriggers();
-
-  ScriptApp.newTrigger('checkDeadlinesAndSendReminders')
-      .timeBased()
-      .everyMinutes(10)
-      .create();
-
-  console.log('10分ごとに実行するトリガーをセットしました。');
-  console.log('セットアップは正常に終了しました。このタブを閉じてKu-LMSで課題リストアップの更新を行ってください。');
 }
 
 // Copyright (c) 2025 SAYU
 const PROPERTIES_KEY = 'HOMEWORKS_DATA';
+const CALENDAR_NAME = 'KLPF課題';
+
+function getOrCreateKLPFCalendar() {
+  const userProps = PropertiesService.getUserProperties();
+  const storedId = userProps.getProperty('KLPF_CALENDAR_ID');
+  if (storedId) {
+    const cal = CalendarApp.getCalendarById(storedId);
+    if (cal) return cal;
+  }
+  const cals = CalendarApp.getCalendarsByName(CALENDAR_NAME);
+  if (cals.length &gt; 0) {
+    userProps.setProperty('KLPF_CALENDAR_ID', cals[0].getId());
+    return cals[0];
+  }
+  const newCal = CalendarApp.createCalendar(CALENDAR_NAME);
+  userProps.setProperty('KLPF_CALENDAR_ID', newCal.getId());
+  return newCal;
+}
 
 function doPost(e) {
   try {
@@ -155,10 +163,10 @@ function doPost(e) {
 
     const currentDataJSON = userProperties.getProperty(PROPERTIES_KEY);
     const homeworks = currentDataJSON ? JSON.parse(currentDataJSON) : [];
-
     const updatedHomeworks = updateHomeworkList(homeworks, incomingHomeworks);
-
     userProperties.setProperty(PROPERTIES_KEY, JSON.stringify(updatedHomeworks.homeworks));
+
+    syncCalendarEvents(updatedHomeworks.homeworks);
 
     const message = `${updatedHomeworks.addedCount}件の新しい課題を登録し、${updatedHomeworks.removedCount}件の提出済み課題を削除しました。 (締切日なしの課題は${updatedHomeworks.ignoredCount}件スキップしました)`;
 
@@ -176,15 +184,38 @@ function doPost(e) {
   }
 }
 
+function syncCalendarEvents(homeworks) {
+  const calendar = getOrCreateKLPFCalendar();
+  const now = new Date();
+  const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const existingEvents = calendar.getEvents(now, farFuture);
+  existingEvents.forEach(event =&gt; event.deleteEvent());
+
+  homeworks.forEach(hw =&gt; {
+    const deadlineStr = hw.deadline.replace(/\s\(.\)/, '');
+    const deadline = new Date(deadlineStr.replace(/年|月/g, "/").replace("日", ""));
+    if (isNaN(deadline.getTime()) || deadline &lt;= now) return;
+
+    const startTime = new Date(deadline.getTime() - 60 * 60 * 1000);
+    const title = `📝 ${hw.homeworkName} (${hw.lessonName})`;
+    const event = calendar.createEvent(title, startTime, deadline);
+    event.setDescription(`授業名: ${hw.lessonName}\n課題名: ${hw.homeworkName}\n締切: ${hw.deadline}`);
+    event.removeAllReminders();
+    event.addPopupReminder(1080);
+    event.addPopupReminder(360);
+    event.addPopupReminder(60);
+  });
+}
+
 function updateHomeworkList(currentList, incomingList) {
-    const validIncomingList = incomingList.filter(h => h.deadline && h.deadline.trim() !== '‐');
+    const validIncomingList = incomingList.filter(h =&gt; h.deadline &amp;&amp; h.deadline.trim() !== '‐');
     const ignoredCount = incomingList.length - validIncomingList.length;
 
-    const incomingKeys = new Set(validIncomingList.map(h => `${h.lessonName}|${h.homeworkName}|${h.deadline}`));
+    const incomingKeys = new Set(validIncomingList.map(h =&gt; `${h.lessonName}|${h.homeworkName}|${h.deadline}`));
     let addedCount = 0;
     let removedCount = 0;
 
-    const keptHomeworks = currentList.filter(h => {
+    const keptHomeworks = currentList.filter(h =&gt; {
         const key = `${h.lessonName}|${h.homeworkName}|${h.deadline}`;
         const shouldKeep = incomingKeys.has(key);
         if (!shouldKeep) {
@@ -193,139 +224,21 @@ function updateHomeworkList(currentList, incomingList) {
         return shouldKeep;
     });
 
-    const keptKeys = new Set(keptHomeworks.map(h => `${h.lessonName}|${h.homeworkName}|${h.deadline}`));
+    const keptKeys = new Set(keptHomeworks.map(h =&gt; `${h.lessonName}|${h.homeworkName}|${h.deadline}`));
 
-    validIncomingList.forEach(h => {
+    validIncomingList.forEach(h =&gt; {
         const key = `${h.lessonName}|${h.homeworkName}|${h.deadline}`;
         if (!keptKeys.has(key)) {
             keptHomeworks.push({
                 lessonName: h.lessonName,
                 homeworkName: h.homeworkName,
-                deadline: h.deadline,
-                reminders: { h18: false, h6: false, h1: false }
+                deadline: h.deadline
             });
             addedCount++;
         }
     });
 
     return { homeworks: keptHomeworks, addedCount, removedCount, ignoredCount };
-}
-
-function checkDeadlinesAndSendReminders() {
-  const userProperties = PropertiesService.getUserProperties();
-  const homeworksJSON = userProperties.getProperty(PROPERTIES_KEY);
-  if (!homeworksJSON) return;
-
-  let homeworks = JSON.parse(homeworksJSON);
-  const now = new Date();
-
-  const remindersToSend = {
-    h18: [],
-    h6: [],
-    h1: []
-  };
-  let dataWasUpdated = false;
-
-  homeworks.forEach(hw => {
-    const deadlineStr = hw.deadline.replace(/\s\(.\)/, '');
-    const deadline = new Date(deadlineStr.replace(/年|月/g, "/").replace("日", ""));
-
-    const reminderChecks = [
-      { hours: 18, flag: 'h18', text: "18時間" },
-      { hours: 6,  flag: 'h6',  text: "6時間" },
-      { hours: 1,  flag: 'h1',  text: "1時間" }
-    ];
-
-    for (const check of reminderChecks) {
-      const reminderTime = new Date(deadline.getTime() - (check.hours * 60 * 60 * 1000));
-      if (now >= reminderTime && !hw.reminders[check.flag]) {
-        remindersToSend[check.flag].push(hw);
-        hw.reminders[check.flag] = true;
-        dataWasUpdated = true;
-      }
-    }
-  });
-
-  const userEmail = Session.getActiveUser().getEmail();
-
-  if (remindersToSend.h18.length > 0) {
-    sendGroupedReminderEmail(userEmail, remindersToSend.h18, "18時間", homeworks);
-  }
-  if (remindersToSend.h6.length > 0) {
-    sendGroupedReminderEmail(userEmail, remindersToSend.h6, "6時間", homeworks);
-  }
-  if (remindersToSend.h1.length > 0) {
-    sendGroupedReminderEmail(userEmail, remindersToSend.h1, "1時間", homeworks);
-  }
-
-  if (dataWasUpdated) {
-    userProperties.setProperty(PROPERTIES_KEY, JSON.stringify(homeworks));
-  }
-}
-
-function sendGroupedReminderEmail(userEmail, groupedHomeworks, remainingTimeText, allHomeworks) {
-  const subject = `【課題通知】締切まで約${remainingTimeText}の課題が${groupedHomeworks.length}件あります`;
-
-  let mainHomeworksHtml = "";
-  groupedHomeworks.forEach(hw => {
-    mainHomeworksHtml += `
-      &lt;div style="border: 1px solid #ddd; padding: 16px; margin-bottom: 16px; border-radius: 8px; background-color: #f9f9f9;"&gt;
-        &lt;p&gt;&lt;strong&gt;締切日:&lt;/strong&gt; ${hw.deadline}&lt;/p&gt;
-        &lt;p&gt;&lt;strong&gt;授業名:&lt;/strong&gt; ${hw.lessonName}&lt;/p&gt;
-        &lt;p&gt;&lt;strong&gt;課題名:&lt;/strong&gt; ${hw.homeworkName}&lt;/p&gt;
-      &lt;/div&gt;
-    `;
-  });
-
-  const otherHomeworksHtml = createOtherHomeworksHtml(groupedHomeworks, allHomeworks);
-
-  const body = `
-    &lt;div style="font-family: sans-serif; text-align: left; max-width: 600px; margin: auto;"&gt;
-      &lt;p style="font-size: 1.1em; color: #D32F2F;"&gt;&lt;strong&gt;以下の${groupedHomeworks.length}件の課題が、${remainingTimeText}以内に締め切りになります！&lt;/strong&gt;&lt;/p&gt;
-      &lt;p&gt;Ku-LMSを開いて確認してください。&lt;/p&gt;
-      ${mainHomeworksHtml}
-      &lt;p&gt;提出しているにもかかわらずこのメールが受信された場合は、課題リストが正しく更新されていない可能性があります。Ku-LMSホーム画面で課題リストアップの更新を完了させてください。&lt;/p&gt;
-      &lt;p style="text-align: center; margin-top: 24px; margin-bottom: 24px;"&gt;
-        &lt;a href="https://study.ns.kogakuin.ac.jp" style="display: inline-block; background-color: #5B9DFF; color: #ffffff; padding: 12px 48px; text-decoration: none; border-radius: 8px; font-weight: bold;"&gt;Ku-LMSを開く&lt;/a&gt;
-      &lt;/p&gt;
-      ${otherHomeworksHtml}
-      &lt;hr&gt;
-      &lt;p style="color: #888; font-size: 0.8em;"&gt;このメールは拡張機能KLPFによって自動送信されました。&lt;/p&gt;
-    &lt;/div&gt;
-  `;
-
-  GmailApp.sendEmail(userEmail, subject, "", { htmlBody: body });
-}
-
-function createOtherHomeworksHtml(mainHomeworks, allHomeworks) {
-    const mainKeys = new Set(mainHomeworks.map(h => `${h.lessonName}|${h.homeworkName}|${h.deadline}`));
-
-    const otherHomeworksList = allHomeworks.filter(h => {
-        const key = `${h.lessonName}|${h.homeworkName}|${h.deadline}`;
-        if (mainKeys.has(key)) {
-            return false;
-        }
-        const deadlineStr = h.deadline.replace(/\s\(.\)/, '');
-        const deadline = new Date(deadlineStr.replace(/年|月/g, "/").replace("日", ""));
-        return deadline > new Date();
-    });
-
-    otherHomeworksList.sort((a, b) => {
-        const dateA_str = a.deadline.replace(/\s\(.\)/, '');
-        const dateB_str = b.deadline.replace(/\s\(.\)/, '');
-        const dateA = new Date(dateA_str.replace(/年|月/g, "/").replace("日", ""));
-        const dateB = new Date(dateB_str.replace(/年|月/g, "/").replace("日", ""));
-        return dateA - dateB;
-    });
-
-    if (otherHomeworksList.length === 0) return "";
-
-    let html = '&lt;h3 style="margin-top: 24px; border-bottom: 1px solid #ccc; padding-bottom: 8px;"&gt;その他に締切が近い課題&lt;/h3&gt;&lt;ul style="padding-left: 20px; list-style-type: none;"&gt;';
-    otherHomeworksList.forEach(item => {
-        html += `&lt;li style="margin-bottom: 12px;"&gt;&lt;strong&gt;${item.lessonName}&lt;/strong&gt;&lt;br&gt;　→${item.homeworkName}&lt;br&gt;&lt;span style="font-size: 0.9em; color: #555;"&gt;(締切: ${item.deadline})&lt;/span&gt;&lt;/li&gt;`;
-    });
-    html += '&lt;/ul&gt;';
-    return html;
 }
 
 function showScheduledHomework() {
@@ -337,33 +250,27 @@ function showScheduledHomework() {
 
   const homeworks = JSON.parse(homeworksJSON);
   console.log(`--- 現在登録されている課題リマインダー (${homeworks.length}件) ---`);
-  homeworks.forEach((hw, index) => {
+  homeworks.forEach((hw, index) =&gt; {
     console.log(`[${index + 1}]`);
     console.log(`  締切日: ${hw.deadline}`);
     console.log(`  授業名: ${hw.lessonName}`);
     console.log(`  課題名: ${hw.homeworkName}`);
-    console.log(`  通知状況: 18時間前:${hw.reminders.h18}, 6時間前:${hw.reminders.h6}, 1時間前:${hw.reminders.h1}`);
     console.log('--------------------');
   });
 }
 
-function clearAllTriggers() {
-    const allTriggers = ScriptApp.getProjectTriggers();
-    for (const trigger of allTriggers) {
-        if (trigger.getHandlerFunction() === 'checkDeadlinesAndSendReminders') {
-            ScriptApp.deleteTrigger(trigger);
-        }
-    }
-}
-
-function clearAllDataAndTriggers() {
-  clearAllTriggers();
-  console.log('定期実行トリガーを削除しました。');
+function clearAllDataAndEvents() {
+  const calendar = getOrCreateKLPFCalendar();
+  const now = new Date();
+  const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const existingEvents = calendar.getEvents(now, farFuture);
+  existingEvents.forEach(event =&gt; event.deleteEvent());
+  console.log('カレンダーイベントを全て削除しました。');
   PropertiesService.getUserProperties().deleteProperty(PROPERTIES_KEY);
   console.log('すべての課題データを削除しました。');
   console.log('リセットが完了しました。');
 }
-                        </code></pre>
+</code></pre>
                     </details>
                 </div></div>
             </li>
@@ -396,7 +303,7 @@ function clearAllDataAndTriggers() {
                 <span class="step-number">8</span>
                 <div><h3><code>main</code> を初回実行</h3>
                 <p>URLの貼り付けが完了したら、サイトに戻り、「<strong>完了</strong>」をクリックします。<br>
-                    次に、GASエディタ上部の関数選択で「<strong>main</strong>」を選んで実行し、必要な権限を先ほどと同じように承認します。テストメールが届き、10分ごとの確認トリガーが作成されたらGAS側の準備は完了です。</p></div>
+                    次に、GASエディタ上部の関数選択で「<strong>main</strong>」を選んで実行し、必要な権限を先ほどと同じように承認します。「KLPF課題」カレンダーとセットアップ完了のテスト予定が作成されたらGAS側の準備は完了です。</p></div>
             </li>
         </ol>
                 </section>
@@ -407,7 +314,7 @@ function clearAllDataAndTriggers() {
                     <ol class="compact-steps">
                         <li><span>1</span><p>拡張機能のオプションページで「<strong>課題リストアップ設定</strong>」を開きます。</p></li>
                         <li><span>2</span><p>作成したWebhook URLを貼り付けます。</p></li>
-                        <li><span>3</span><p>「<strong>通知機能</strong>」をONにし、表示された接続許可を確認します。</p></li>
+                        <li><span>3</span><p>「<strong>カレンダー連携</strong>」をONにし、表示された接続許可を確認します。</p></li>
                         <li><span>4</span><p>KU-LMSホームで課題リストアップを更新します。課題が1件以上あればWebhookへ送信されます。</p></li>
                         <li><span>5</span><p><strong>ここまでで環境構築は終了です。</strong>以下からは自作Webhookの設定を行いたい人向けの説明です。</p></li>
                     </ol>
@@ -420,7 +327,7 @@ function clearAllDataAndTriggers() {
                     <p class="section-lead">標準GASを使わず、任意のHTTPSエンドポイントへ同じ課題データを送信できます。DiscordやSlackへ直接送る場合は、受信サーバー側で各サービス用の形式へ変換してください。</p>
                     <div class="developer-flow" aria-label="Webhook連携の流れ">
                         <div><span>1</span><strong>HTTPSエンドポイントを用意</strong><small>POSTされたJSON配列を受け取れるようにします。</small></div>
-                        <div><span>2</span><strong>URLをKLPFへ登録</strong><small>通知機能をONにすると、そのホストへの接続許可が表示されます。</small></div>
+                        <div><span>2</span><strong>URLをKLPFへ登録</strong><small>カレンダー連携をONにすると、そのホストへの接続許可が表示されます。</small></div>
                         <div><span>3</span><strong>KU-LMSで課題を更新</strong><small>取得できた未提出課題が期限順で送信されます。</small></div>
                     </div>
                     <div class="notice"><strong>送信先はHTTPS必須です。</strong><span>URLにユーザー名・パスワードを埋め込む形式には対応していません。認証が必要な場合は、推測されにくいURLやクエリトークンを受信側で検証してください。</span></div>

@@ -39,6 +39,7 @@ export const SETTINGS_CONFIG = [
     { id: 'dark-mode',       key: 'darkMode',      type: 'checked', storage: 'sync' },
     { id: 'home-work',        key: 'homework',      type: 'checked', storage: 'sync' },
     { id: 'logout-block',    key: 'logoutblock',   type: 'checked', storage: 'sync' },
+    { id: 'drop-submit', key: 'dropSubmit', type: 'checked', storage: 'sync' },
     { id: 'kyozai-open',    key: 'kyozaiopen',   type: 'checked', storage: 'sync' },
     { id: 'hide-home-update-notification', key: 'hideHomeUpdateNotification', type: 'checked', storage: 'sync' },
 

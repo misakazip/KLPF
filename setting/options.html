@@ -165,6 +165,13 @@ options.cssとmain.jsを読み込み、機能定義に対応した入力要素�
                             <span class="slider"></span>
                         </label>
                     </div>
+                    <div class="switch-container" data-feature-key="dropSubmit" title="課題提出ページ全体へのドラッグ&amp;ドロップで、最大5個・各20MBまでのファイルを入力欄にセットします。提出は確認後に行ってください。">
+                        <div class="switch-copy"><span class="switch-label">D&amp;D課題提出</span></div>
+                        <label class="switch">
+                            <input type="checkbox" id="drop-submit">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                     <div class="switch-container" data-feature-key="searchSubject" title="学期によって受講している授業カードのみを表示し、それ以外は非表示にします。また、KU-LMSの授業一覧で選択した講義の絞り込み条件を保存し、KU-LMSを開きなおしても自動的にフィルターを適用します。">
                         <div class="switch-copy"><span class="switch-label">履修中科目のみ表示</span><span class="feature-recommended">推奨</span></div>
                         <label class="switch">
@@ -356,11 +363,11 @@ options.cssとmain.jsを読み込み、機能定義に対応した入力要素�
                                 <path stroke-linejoin="round" stroke-linecap="round" stroke-width="3" d="M20 6L9 17L4 12"></path>
                             </svg>
                         </div>
-                        <span class="label">通知機能</span>
+                        <span class="label">カレンダー連携</span>
                     </label>
                     <label for="homework-webhook-url">Webhook URL</label>
                     <input type="text" id="homework-webhook-url" placeholder="https://example.com/your-webhook">
-                    <a href="../gas/setupgas.html" target="_blank" rel="noopener noreferrer" style="color: rgb(220, 220, 220)">通知機能の有効化方法について</a>
+                    <a href="../gas/setupgas.html" target="_blank" rel="noopener noreferrer" style="color: rgb(220, 220, 220)">カレンダー連携の有効化方法について</a>
                 </div>
             </div>
         </div>

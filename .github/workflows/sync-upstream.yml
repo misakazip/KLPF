@@ -1,0 +1,53 @@
+name: Sync upstream
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-upstream.yml'
+  schedule:
+    - cron: '23 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - name: Merge upstream main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch https://github.com/SAYUTIM/KLPF.git main
+          git merge --no-edit FETCH_HEAD
+      - name: Install development dependencies
+        run: npm ci
+      - name: Run checks
+        run: npm run check
+      - name: Push main
+        run: git push origin HEAD:main
+
+  build:
+    needs: sync
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: main
